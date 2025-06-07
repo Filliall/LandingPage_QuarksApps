@@ -7,12 +7,37 @@ import {
 import express from 'express';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { getContext } from '@netlify/angular-runtime/context.mjs';
 
 const serverDistFolder = dirname(fileURLToPath(import.meta.url));
 const browserDistFolder = resolve(serverDistFolder, '../browser');
 
 const app = express();
 const angularApp = new AngularNodeAppEngine();
+
+import { IncomingMessage, ServerResponse } from 'node:http';
+
+export async function netlifyAppEngineHandler(
+  req: IncomingMessage,
+  res: ServerResponse
+): Promise<void> {
+  const context = getContext();
+  // Example API endpoints can be defined here.
+  // Uncomment and define endpoints as necessary.
+  // const pathname = new URL(request.url).pathname;
+  // if (pathname === '/api/hello') {
+  //   res.writeHead(200, { 'Content-Type': 'application/json' });
+  //   res.end(JSON.stringify({ message: 'Hello from the API' }));
+  //   return;
+  // }
+  const response = await angularApp.handle(req, context);
+  if (response) {
+    writeResponseToNodeResponse(response, res);
+  } else {
+    res.writeHead(404);
+    res.end('Not found');
+  }
+}
 
 /**
  * Example Express Rest API endpoints can be defined here.
@@ -34,7 +59,7 @@ app.use(
     maxAge: '1y',
     index: false,
     redirect: false,
-  }),
+  })
 );
 
 /**
@@ -44,7 +69,7 @@ app.use('/**', (req, res, next) => {
   angularApp
     .handle(req)
     .then((response) =>
-      response ? writeResponseToNodeResponse(response, res) : next(),
+      response ? writeResponseToNodeResponse(response, res) : next()
     )
     .catch(next);
 });
